@@ -13,9 +13,12 @@ st.set_page_config(
 @st.cache_data
 def get_attendance_data():
     df = pd.read_csv('data/Attendance-Metrics.csv')
+
     # Convert 'Date' column to datetime format
     df['Date'] = pd.to_datetime(df['Date'], format='%d/%m/%Y')
 
+    # Replace NaNs with zeros
+    df.fillna(0, inplace=True)
     return df
 
 attendance_df = get_attendance_data()
@@ -76,18 +79,18 @@ total_first_timers = filtered_attendance_df['First Timers'].sum()
 total_second_third_timers = filtered_attendance_df['2nd/3rd Timers'].sum()
 total_children = filtered_attendance_df['Children'].sum()
 
-col1, col2, col3, col4, col5 = st.columns(5)
+col1, col2, col3, col4 = st.columns(4)
 
 with col1:
     st.metric('Total Members', 224)
 with col2:
-    st.metric('Total Guests', total_guests)
-with col3:
     st.metric('Total First Timers', total_first_timers)
-with col4:
+with col3:
     st.metric('Total 2nd/3rd Timers', total_second_third_timers)
-with col5:
+with col4:
     st.metric('Total Children', 8)
+#with col5:
+#    st.metric('Total Guests', total_guests)
 
 
 # -----------------------------------------------------------------------------

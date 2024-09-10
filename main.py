@@ -56,10 +56,6 @@ def filter_by_time_range(df, time_range):
     return df[(df['Date'] >= start_date) & (df['Date'] <= end_date)]
 
 # -----------------------------------------------------------------------------
-# Draw the dashboard
-
-st.title('TheNew Island Dashboard')
-
 # Time range selection
 time_range = st.selectbox(
     'Select the time range to view:',

@@ -25,19 +25,47 @@ attendance_df = get_attendance_data()
 
 st.title('TheNew Island Dashboard')
 
-# Multi-select for choosing specific dates
-unique_dates = attendance_df['Date'].dt.strftime('%d/%m/%Y').unique()
+# -----------------------------------------------------------------------------
+# Function to filter data based on time range selection
+def filter_by_time_range(df, time_range):
+    end_date = df['Date'].max()  # Most recent Sunday
+    if time_range == 'Last 3 months':
+        start_date = end_date - pd.DateOffset(months=3)
+    elif time_range == 'Last 6 months':
+        start_date = end_date - pd.DateOffset(months=6)
+#    elif time_range == 'Last 1 year':
+#        start_date = end_date - pd.DateOffset(years=1)
+    elif time_range == 'First quarter':
+        start_date = pd.Timestamp(f'{end_date.year}-01-01')
+        end_date = pd.Timestamp(f'{end_date.year}-03-31')
+    elif time_range == 'Second quarter':
+        start_date = pd.Timestamp(f'{end_date.year}-04-01')
+        end_date = pd.Timestamp(f'{end_date.year}-06-30')
+    elif time_range == 'Third quarter':
+        start_date = pd.Timestamp(f'{end_date.year}-07-01')
+        end_date = pd.Timestamp(f'{end_date.year}-09-30')
+#    elif time_range == 'Fourth quarter':
+#        start_date = pd.Timestamp(f'{end_date.year}-10-01')
+#        end_date = pd.Timestamp(f'{end_date.year}-12-31')
+    else:
+        start_date = df['Date'].min()
 
-selected_dates = st.multiselect(
-    'Select the specific dates you want to view:',
-    options=unique_dates,
-    default=[unique_dates[0], unique_dates[-1]]
+    return df[(df['Date'] >= start_date) & (df['Date'] <= end_date)]
+
+# -----------------------------------------------------------------------------
+# Draw the dashboard
+
+st.title('TheNew Island Dashboard')
+
+# Time range selection
+time_range = st.selectbox(
+    'Select the time range to view:',
+    ['Last 3 months', 'Last 6 months', 'First quarter', 'Second quarter','Third quarter', 'All time'],
+    index=0  # Default to 'Last 3 months'
 )
 
-# Filter the data based on the selected dates
-filtered_attendance_df = attendance_df[
-    attendance_df['Date'].dt.strftime('%d/%m/%Y').isin(selected_dates)
-]
+# Filter data based on the selected time range
+filtered_attendance_df = filter_by_time_range(attendance_df, time_range)
 
 # Visualize key metrics
 st.header('Attendance Metrics')
@@ -61,14 +89,14 @@ with col4:
 with col5:
     st.metric('Total Children', 8)
 
+
 # -----------------------------------------------------------------------------
 # Visualize the trends and the pie chart side by side
 
-col1, col2 = st.columns([2, 1])  # Make the first column wider than the second
+col1, col2 = st.columns([2, 1])
 
 # Column 1: Line plot for attendance trends
 with col1:
-    # Create a line plot for the attendance trends with markers
     fig, ax = plt.subplots()
 
     # Plot Members
@@ -84,7 +112,7 @@ with col1:
             marker='.', color='yellow', label='First Timers', linestyle='-', linewidth=1)
 
     # Customize the plot
-    ax.set_title('Attendance Trends Over Time')
+    ax.set_title('Attendance Trends Over Time', color='white')
 
     # Set x and y labels to white
     ax.set_xlabel('Date', color='white')

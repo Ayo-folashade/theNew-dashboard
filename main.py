@@ -12,7 +12,7 @@ st.set_page_config(
 # Function to load the dataset
 @st.cache_data
 def get_attendance_data():
-    df = pd.read_csv('data/Attendance-Metrics.csv')
+    df = pd.read_csv('Attendance-Metrics.csv')
 
     # Convert 'Date' column to datetime format
     df['Date'] = pd.to_datetime(df['Date'], format='%d/%m/%Y')
@@ -172,12 +172,155 @@ with col2:
     st.text('First Timers Retention Rate')
     st.pyplot(fig)
 
+# -----------------------------------------------------------------------------
 # Display the filtered data as a table without the time and index
-st.header('Attendance Data')
+st.subheader('Attendance Data')
 
-# Reset the index
+# -----------------------------------------------------------------------------
+# Checkbox to filter special services
+show_special_events_only = st.checkbox('Show only special services')
+
+# -----------------------------------------------------------------------------
+# Function to filter data based on special events
+def filter_by_special_event(df, show_special_events_only):
+    if show_special_events_only:
+        # Filter to show only rows where there is a special event
+        return df[df['Special Sunday Service'] != 'No']
+    return df
+
+# Filter data based on the checkbox state
+filtered_attendance_df = filter_by_special_event(attendance_df, show_special_events_only)
+
+# -----------------------------------------------------------------------------
+# Format the 'Date' column to remove the time display
 filtered_attendance_df = filtered_attendance_df.copy()
-
-# Format the 'Date' column to remove the time
 filtered_attendance_df['Date'] = filtered_attendance_df['Date'].dt.strftime('%d/%m/%Y')
+
+# Display the filtered data in a table
 st.dataframe(filtered_attendance_df)
+
+# -----------------------------------------------------------------------------
+# Visualize special event attendance if applicable
+if show_special_events_only and not filtered_attendance_df.empty:
+    st.subheader('Special Sunday Service')
+
+    # Plot bar chart for attendance during special events
+    fig, ax = plt.subplots(figsize=(4, 2))
+
+    filtered_attendance_df.plot(
+        x='Special Sunday Service',
+        y=['Members', 'Guests', 'First Timers', '2nd/3rd Timers', 'Children'],
+        kind='barh',
+        stacked=True,
+        ax=ax
+    )
+
+    # Customize the plot
+    #ax.set_title('Attendance for Special Events', color='white', fontsize=5)
+    ax.set_xlabel('Count', color='white', fontsize=5)
+    ax.set_ylabel('Special Event', color='white', fontsize=5)
+
+    # Rotate y-axis labels
+    ax.set_yticklabels(ax.get_yticklabels(), rotation=45, ha='right', color='white', fontsize=4)
+
+    ax.tick_params(axis='y', colors='white', labelsize=5)
+    ax.tick_params(axis='x', colors='white', labelsize=5)
+
+    # Customize the legend
+    ax.legend(fontsize=3)
+
+    # Transparent background
+    fig.patch.set_alpha(0)
+    ax.set_facecolor('none')
+
+    # Show the plot
+    st.pyplot(fig)
+elif show_special_events_only and filtered_attendance_df.empty:
+    st.write('No special events found.')
+
+
+# -----------------------------------------------------------------------------
+# Feature to compare Quarter
+st.subheader('Compare Metrics For Different Quarter')
+# Function to filter data by quarter
+def filter_by_quarter(df, quarter):
+    year = df['Date'].max().year  # Get the current year
+    if quarter == 'First quarter':
+        start_date, end_date = f'{year}-01-01', f'{year}-03-31'
+    elif quarter == 'Second quarter':
+        start_date, end_date = f'{year}-04-01', f'{year}-06-30'
+    elif quarter == 'Third quarter':
+        start_date, end_date = f'{year}-07-01', f'{year}-09-30'
+    elif quarter == 'Fourth quarter':
+        start_date, end_date = f'{year}-10-01', f'{year}-12-31'
+    return df[(df['Date'] >= start_date) & (df['Date'] <= end_date)]
+
+# Select two quarters to compare
+quarter_options = ['First quarter', 'Second quarter', 'Third quarter', 'Fourth quarter']
+quarter_1 = st.selectbox('Select first quarter to compare:', quarter_options, index=0)
+quarter_2 = st.selectbox('Select second quarter to compare:', quarter_options, index=1)
+
+# Filter data for both quarters
+filtered_data_q1 = filter_by_quarter(attendance_df, quarter_1)
+filtered_data_q2 = filter_by_quarter(attendance_df, quarter_2)
+
+# Calculate key metrics for each quarter
+def calculate_metrics(df):
+    return {
+        #'Total Members': df['Members'].sum(),
+        #'Total Guests': df['Guests'].sum(),
+        'Total First Timers': df['First Timers'].sum(),
+        'Total 2nd/3rd Timers': df['2nd/3rd Timers'].sum()
+        #'Total Children': df['Children'].sum()
+    }
+
+metrics_q1 = calculate_metrics(filtered_data_q1)
+metrics_q2 = calculate_metrics(filtered_data_q2)
+
+# Display quarter comparison metrics
+st.text(f"Quarter Comparison: {quarter_1} vs {quarter_2}")
+
+# Create columns to display metrics side by side
+col1, col2 = st.columns(2)
+
+with col1:
+    st.subheader(f"{quarter_1} Metrics")
+    for key, value in metrics_q1.items():
+        st.metric(label=key, value=value)
+
+with col2:
+    st.subheader(f"{quarter_2} Metrics")
+    for key, value in metrics_q2.items():
+        st.metric(label=key, value=value)
+
+# Visualize the comparison using a bar chart
+fig, ax = plt.subplots(figsize=(3, 1.2))
+
+# Metrics for bar plot
+categories = ['First Timers', '2nd/3rd Timers'] #add later['Members', 'Guests', 'Children']
+values_q1 = [metrics_q1[f'Total {category}'] for category in categories]
+values_q2 = [metrics_q2[f'Total {category}'] for category in categories]
+
+# Plot bar chart
+bar_width = 0.20
+index = range(len(categories))
+
+ax.bar(index, values_q1, bar_width, label=quarter_1, color='#66b3ff')
+ax.bar([i + bar_width for i in index], values_q2, bar_width, label=quarter_2, color='#ff6666')
+
+# Add labels and formatting
+ax.set_xlabel('Metrics', color='white', fontsize=3)
+ax.set_ylabel('Count', color='white', fontsize=3)
+ax.set_title(f'Attendance Metrics Between {quarter_1} and {quarter_2}', color='white', fontsize=5)
+ax.set_xticks([i + bar_width / 2 for i in index])
+ax.set_xticklabels(categories)
+ax.tick_params(axis='y', colors='white', labelsize=4.5)
+ax.tick_params(axis='x', colors='white', labelsize=4.5)
+ax.legend(fontsize=4)
+
+# Set background to transparent
+fig.patch.set_alpha(0)  # Figure background
+ax.set_facecolor('none')  # Axes background
+
+# Display the bar chart in Streamlit
+st.pyplot(fig)

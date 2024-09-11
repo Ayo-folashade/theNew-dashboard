@@ -19,6 +19,11 @@ def get_attendance_data():
 
     # Replace NaNs with zeros
     df.fillna(0, inplace=True)
+
+    # Cast numeric columns to integer after filling NaNs
+    numeric_columns = ['Members', 'Guests', 'First Timers', '2nd/3rd Timers', 'Total Check-in', 'Hall Count', 'Children']
+    df[numeric_columns] = df[numeric_columns].astype(int)
+
     return df
 
 attendance_df = get_attendance_data()

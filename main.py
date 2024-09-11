@@ -12,7 +12,7 @@ st.set_page_config(
 # Function to load the dataset
 @st.cache_data
 def get_attendance_data():
-    df = pd.read_csv('Attendance-Metrics.csv')
+    df = pd.read_csv('data/Attendance-Metrics.csv')
 
     # Convert 'Date' column to datetime format
     df['Date'] = pd.to_datetime(df['Date'], format='%d/%m/%Y')

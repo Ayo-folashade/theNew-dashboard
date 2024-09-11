@@ -175,9 +175,9 @@ with col2:
 # Display the filtered data as a table without the time and index
 st.header('Attendance Data')
 
-# Format the 'Date' column to remove the time and show only the date
-filtered_attendance_df['Date'] = filtered_attendance_df['Date'].dt.strftime('%d/%m/%Y')
+# Reset the index
+filtered_attendance_df = filtered_attendance_df.copy()
 
-# Reset the index to avoid displaying the original DataFrame index
-filtered_attendance_df = filtered_attendance_df.reset_index(drop=True)
+# Format the 'Date' column to remove the time
+filtered_attendance_df['Date'] = filtered_attendance_df['Date'].dt.strftime('%d/%m/%Y')
 st.dataframe(filtered_attendance_df)

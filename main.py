@@ -49,7 +49,7 @@ def load_attendance_data_from_google_sheet():
     # Authorize and create a connection to the sheet
     client = gspread.authorize(creds)
 
-    # Open the Google Sheet by its name
+    # Open the Google Sheet
     sheet = client.open('Attendance').sheet1
 
     # Get all the data from the Google Sheet
@@ -58,7 +58,7 @@ def load_attendance_data_from_google_sheet():
     # Convert the data to a pandas DataFrame
     df = pd.DataFrame(data)
 
-    # Convert 'Date' column to datetime if necessary
+    # Convert 'Date' column to datetime
     df['Date'] = pd.to_datetime(df['Date'], format='%d/%m/%Y', errors='coerce')
 
     return df
@@ -69,6 +69,10 @@ def load_attendance_data_from_google_sheet():
 attendance_df = load_attendance_data_from_google_sheet()
 
 # ---------------------------------------------------------------------
+# Draw the dashboard
+st.title('TheNew Island Dashboard')
+
+# -----------------------------------------------------------------------------
 # Draw the dashboard
 st.title('TheNew Island Dashboard')
 
@@ -134,7 +138,7 @@ with col4:
 
 
 # -----------------------------------------------------------------------------
-# Visualize the trends and the pie chart side by side
+# Visualize the trends and the pie chart
 
 col1, col2 = st.columns([2, 1])
 
@@ -192,7 +196,7 @@ with col2:
 
     fig, ax = plt.subplots(figsize=(5, 5), facecolor='none')
     wedges, texts, autotexts = ax.pie(sizes, labels=labels, colors=colors, autopct='%1.1f%%', startangle=90)
-    ax.axis('equal')  # Equal aspect ratio ensures the pie is drawn as a circle
+    ax.axis('equal')
 
     # Transparent background
     fig.patch.set_alpha(0)
@@ -209,69 +213,64 @@ with col2:
 st.subheader('Attendance Data')
 
 # -----------------------------------------------------------------------------
-# Checkbox to filter special services
-show_special_events_only = st.checkbox('Show only special services')
+# Ask if the user wants to view filtered data
+show_filtered_data = st.checkbox('Do you want to view the filtered data?')
 
-# -----------------------------------------------------------------------------
-# Function to filter data based on special events
-def filter_by_special_event(df, show_special_events_only):
-    if show_special_events_only:
-        # Filter to show only rows where there is a special event
-        return df[df['Special Sunday Service'] != 'No']
-    return df
+if show_filtered_data:
+    # Checkbox to filter special services within the filtered data
+    show_special_events_only = st.checkbox('Show only special services')
 
-# Filter data based on the checkbox state
-filtered_attendance_df = filter_by_special_event(attendance_df, show_special_events_only)
+    # Function to filter data based on special events
+    def filter_by_special_event(df, show_special_events_only):
+        if show_special_events_only:
+            return df[df['Special Sunday Service'] != 'No']
+        return df
 
-# -----------------------------------------------------------------------------
-# Format the 'Date' column to remove the time display
-filtered_attendance_df = filtered_attendance_df.copy()
-filtered_attendance_df['Date'] = filtered_attendance_df['Date'].dt.strftime('%d/%m/%Y')
+    # Apply special event filter if checkbox is checked
+    filtered_attendance_df = filter_by_special_event(filtered_attendance_df, show_special_events_only)
 
-# Display the filtered data in a table
-st.dataframe(filtered_attendance_df)
+    # Format the 'Date' column for display
+    filtered_attendance_df = filtered_attendance_df.copy()
+    filtered_attendance_df['Date'] = filtered_attendance_df['Date'].dt.strftime('%d/%m/%Y')
 
-# -----------------------------------------------------------------------------
-# Visualize special event attendance if applicable
-if show_special_events_only and not filtered_attendance_df.empty:
-    st.subheader('Special Sunday Service')
+    # Display the filtered data in a table
+    st.subheader('Filtered Attendance Data')
+    st.dataframe(filtered_attendance_df)
 
-    # Plot bar chart for attendance during special events
-    fig, ax = plt.subplots(figsize=(4, 2))
+    # -----------------------------------------------------------------------------
+    # Visualize special event attendance if applicable
+    if show_special_events_only and not filtered_attendance_df.empty:
+        st.subheader('Special Sunday Service')
 
-    filtered_attendance_df.plot(
-        x='Special Sunday Service',
-        y=['Members', 'Guests', 'First Timers', '2nd/3rd Timers', 'Children'],
-        kind='barh',
-        stacked=True,
-        ax=ax,
-        color=[color_palette['Members'], color_palette['Guests'], color_palette['First Timers'],
-               color_palette['2nd/3rd Timers'], color_palette['Children']]
+        # Plot bar chart for attendance during special events
+        fig, ax = plt.subplots(figsize=(4, 2))
 
-    )
+        filtered_attendance_df.plot(
+            x='Special Sunday Service',
+            y=['Members', 'Guests', 'First Timers', '2nd/3rd Timers', 'Children'],
+            kind='barh',
+            stacked=True,
+            ax=ax,
+            color=[color_palette['Members'], color_palette['Guests'], color_palette['First Timers'],
+                   color_palette['2nd/3rd Timers'], color_palette['Children']]
+        )
 
-    # Customize the plot
-    #ax.set_title('Attendance for Special Events', color='white', fontsize=5)
-    ax.set_xlabel('Count', color='white', fontsize=6)
-    ax.set_ylabel('Special Event', color='white', fontsize=6)
+        # Customize the plot
+        ax.set_xlabel('Count', color='white', fontsize=6)
+        ax.set_ylabel('Special Event', color='white', fontsize=6)
+        ax.set_yticklabels(ax.get_yticklabels(), rotation=45, ha='right', color='white', fontsize=6)
+        ax.tick_params(axis='y', colors='white', labelsize=6)
+        ax.tick_params(axis='x', colors='white', labelsize=6)
+        ax.legend(fontsize=4)
 
-    # Rotate y-axis labels
-    ax.set_yticklabels(ax.get_yticklabels(), rotation=45, ha='right', color='white', fontsize=6)
+        # Transparent background
+        fig.patch.set_alpha(0)
+        ax.set_facecolor('none')
 
-    ax.tick_params(axis='y', colors='white', labelsize=6)
-    ax.tick_params(axis='x', colors='white', labelsize=6)
-
-    # Customize the legend
-    ax.legend(fontsize=4)
-
-    # Transparent background
-    fig.patch.set_alpha(0)
-    ax.set_facecolor('none')
-
-    # Show the plot
-    st.pyplot(fig)
-elif show_special_events_only and filtered_attendance_df.empty:
-    st.write('No special events found.')
+        # Show the plot
+        st.pyplot(fig)
+    elif show_special_events_only and filtered_attendance_df.empty:
+        st.write('No special events found.')
 
 
 # -----------------------------------------------------------------------------
@@ -312,7 +311,7 @@ if st.button('Compare Selected Quarters'):
 
         metrics = {quarter: calculate_metrics(filtered_data) for quarter, filtered_data in filtered_data_quarters.items()}
 
-        # Create columns to display metrics side by side for all selected quarters
+        # Display metrics for all selected quarters
         cols = st.columns(len(selected_quarters))
 
         for i, quarter in enumerate(selected_quarters):
@@ -380,9 +379,9 @@ def get_attendance_extremes(df, highest=True):
 
 # -----------------------------------------------------------------------------
 # Section for highest/lowest attendance with/without special service
-st.subheader('View High/Low Attendance')
+st.subheader('Display High/Low Attendance Data')
 
-# User selects an option to view specific attendance extremes
+# User selects an option
 attendance_extreme_option = st.selectbox(
     'Select an option to view attendance extremes:',
     options=[

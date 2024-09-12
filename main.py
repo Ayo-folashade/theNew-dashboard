@@ -170,6 +170,9 @@ with col1:
     fig.patch.set_alpha(0)
     ax.set_facecolor('none')
 
+    # Add Legend
+    ax.legend()
+
     # Display the line plot
     st.pyplot(fig)
 

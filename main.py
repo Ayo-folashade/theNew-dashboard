@@ -210,7 +210,7 @@ st.subheader('Attendance Data')
 
 # -----------------------------------------------------------------------------
 # Ask if the user wants to view filtered data
-show_filtered_data = st.checkbox('Do you want to view the filtered data?')
+show_filtered_data = st.checkbox('View the filtered data')
 
 if show_filtered_data:
     # Checkbox to filter special services within the filtered data

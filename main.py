@@ -1,6 +1,8 @@
 import streamlit as st
 import matplotlib.pyplot as plt
 import pandas as pd
+import gspread
+from oauth2client.service_account import ServiceAccountCredentials
 
 # Set the title and favicon for the dashboard
 st.set_page_config(
@@ -8,36 +10,63 @@ st.set_page_config(
     page_icon=':church:',
 )
 
-# Define a color palette to use throughout the plots
+# Define a color palette to use for all plots
 color_palette = {
-    'Members': '#1f77b4',  # Blue
-    'Guests': '#ff7f0e',  # Orange
-    'First Timers': '#2ca02c',  # Green
-    '2nd/3rd Timers': '#d62728',  # Red
-    'Children': '#9467bd',  # Purple
-    'Retained': '#66b3ff',
-    'Not Retained': '#ff6666'
+    'Members': '#17a589',     # Teal
+    'Guests': '#f4a261',  # Muted Rose
+    'First Timers': '#4682b4', # Steel Blue
+    '2nd/3rd Timers': '#dc143c',     # Crimson
+    'Children': '#a27ea8',     # Muted Lavender
+    'Retained': '#17a589',     # Teal
+    'Not Retained': '#f4a261'  # Muted Rose
+}
+
+# Load credentials from Streamlit secrets
+credentials_dict = {
+    "type": st.secrets["gcp_service_account"]["type"],
+    "project_id": st.secrets["gcp_service_account"]["project_id"],
+    "private_key_id": st.secrets["gcp_service_account"]["private_key_id"],
+    "private_key": st.secrets["gcp_service_account"]["private_key"],
+    "client_email": st.secrets["gcp_service_account"]["client_email"],
+    "client_id": st.secrets["gcp_service_account"]["client_id"],
+    "auth_uri": st.secrets["gcp_service_account"]["auth_uri"],
+    "token_uri": st.secrets["gcp_service_account"]["token_uri"],
+    "auth_provider_x509_cert_url": st.secrets["gcp_service_account"]["auth_provider_x509_cert_url"],
+    "client_x509_cert_url": st.secrets["gcp_service_account"]["client_x509_cert_url"]
 }
 
 # -----------------------------------------------------------------------------
 # Function to load the dataset
 @st.cache_data
-def get_attendance_data():
-    df = pd.read_csv('data/Attendance-Metrics.csv')
+# -----------------------------------------------------------------------------
+# Function to load attendance data from Google Sheets
+def load_attendance_data_from_google_sheet():
+    # Define the scope of access
+    scope = ["https://spreadsheets.google.com/feeds", "https://www.googleapis.com/auth/drive"]
 
-    # Convert 'Date' column to datetime format
-    df['Date'] = pd.to_datetime(df['Date'], format='%d/%m/%Y')
+    # Add your service account JSON file path
+    creds = ServiceAccountCredentials.from_json_keyfile_name(credentials_dict, scope)
 
-    # Replace NaNs with zeros
-    df.fillna(0, inplace=True)
+    # Authorize and create a connection to the sheet
+    client = gspread.authorize(creds)
 
-    # Cast numeric columns to integer after filling NaNs
-    numeric_columns = ['Members', 'Guests', 'First Timers', '2nd/3rd Timers', 'Total Check-in', 'Hall Count', 'Children']
-    df[numeric_columns] = df[numeric_columns].astype(int)
+    # Open the Google Sheet by its name or URL
+    sheet = client.open('Attendance').sheet1
+
+    # Get all the data from the Google Sheet
+    data = sheet.get_all_records()
+
+    # Convert the data to a pandas DataFrame
+    df = pd.DataFrame(data)
+
+    # Convert 'Date' column to datetime if necessary
+    df['Date'] = pd.to_datetime(df['Date'], format='%d/%m/%Y', errors='coerce')
 
     return df
 
-attendance_df = get_attendance_data()
+# -----------------------------------------------------------------------------
+# Use the Google Sheet data
+attendance_df = load_attendance_data_from_google_sheet()
 
 # -----------------------------------------------------------------------------
 # Draw the dashboard
@@ -216,7 +245,10 @@ if show_special_events_only and not filtered_attendance_df.empty:
         y=['Members', 'Guests', 'First Timers', '2nd/3rd Timers', 'Children'],
         kind='barh',
         stacked=True,
-        ax=ax
+        ax=ax,
+        color=[color_palette['Members'], color_palette['Guests'], color_palette['First Timers'],
+               color_palette['2nd/3rd Timers'], color_palette['Children']]
+
     )
 
     # Customize the plot
@@ -294,9 +326,15 @@ if st.button('Compare Selected Quarters'):
         fig, ax = plt.subplots(figsize=(4, 2))
 
         categories = ['First Timers', '2nd/3rd Timers']
+
+        # Adjust color mapping to differentiate quarters
+        quarter_colors = ['#17a589','#f4a261']
+
+        # Plot each quarter with its own color
         for i, quarter in enumerate(selected_quarters):
             values = [metrics[quarter][f'Total {category}'] for category in categories]
-            ax.bar([x + i * 0.2 for x in range(len(categories))], values, width=0.2, label=quarter)
+            ax.bar([x + i * 0.2 for x in range(len(categories))], values, width=0.2, label=quarter,
+                   color=quarter_colors[i])
 
         # Add labels and formatting
         ax.set_xlabel('Metrics', fontsize=8, color='white')
@@ -343,7 +381,7 @@ def get_attendance_extremes(df, highest=True):
 
 # -----------------------------------------------------------------------------
 # Section for highest/lowest attendance with/without special service
-st.subheader('Attendance Extremes')
+st.subheader('View High/Low Attendance')
 
 # User selects an option to view specific attendance extremes
 attendance_extreme_option = st.selectbox(

@@ -71,7 +71,6 @@ attendance_df = load_attendance_data_from_google_sheet()
 # ---------------------------------------------------------------------
 # Draw the dashboard
 st.title('TheNew Island Dashboard')
-st.write(attendance_df)
 
 # -----------------------------------------------------------------------------
 # Function to filter data based on time range selection

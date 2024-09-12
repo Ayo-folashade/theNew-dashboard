@@ -8,6 +8,17 @@ st.set_page_config(
     page_icon=':church:',
 )
 
+# Define a color palette to use throughout the plots
+color_palette = {
+    'Members': '#1f77b4',  # Blue
+    'Guests': '#ff7f0e',  # Orange
+    'First Timers': '#2ca02c',  # Green
+    '2nd/3rd Timers': '#d62728',  # Red
+    'Children': '#9467bd',  # Purple
+    'Retained': '#66b3ff',
+    'Not Retained': '#ff6666'
+}
+
 # -----------------------------------------------------------------------------
 # Function to load the dataset
 @st.cache_data
@@ -101,48 +112,37 @@ col1, col2 = st.columns([2, 1])
 
 # Column 1: Line plot for attendance trends
 with col1:
+    # Plot for attendance trends over time
     fig, ax = plt.subplots()
 
     # Plot Members
     ax.plot(filtered_attendance_df['Date'], filtered_attendance_df['Members'],
-            marker='.', color='blue', label='Members', linestyle='-', linewidth=1)
+            marker='.', color=color_palette['Members'], label='Members', linestyle='-', linewidth=1)
 
     # Plot Guests
     ax.plot(filtered_attendance_df['Date'], filtered_attendance_df['Guests'],
-            marker='.', color='red', label='Guests', linestyle='-', linewidth=1)
+            marker='.', color=color_palette['Guests'], label='Guests', linestyle='-', linewidth=1)
 
     # Plot First Timers
     ax.plot(filtered_attendance_df['Date'], filtered_attendance_df['First Timers'],
-            marker='.', color='yellow', label='First Timers', linestyle='-', linewidth=1)
+            marker='.', color=color_palette['First Timers'], label='First Timers', linestyle='-', linewidth=1)
 
     # Customize the plot
     ax.set_title('Attendance Trends Over Time', color='white')
-
-    # Set x and y labels to white
     ax.set_xlabel('Date', color='white')
     ax.set_ylabel('Count', color='white')
 
-    # Customize the legend
-    ax.legend()
-
-    # Rotate date labels for better readability
-    plt.xticks(rotation=45, color='white')
-
-    # Set y-ticks color
+    # Rotate x-axis labels and set tick color
+    ax.tick_params(axis='x', rotation=45, colors='white')
     ax.tick_params(axis='y', colors='white')
 
-    # Set x-ticks color
-    ax.tick_params(axis='x', colors='white')
+    # Grid lines and transparency
+    ax.yaxis.grid(True)
+    ax.xaxis.grid(False)
+    fig.patch.set_alpha(0)
+    ax.set_facecolor('none')
 
-    # Show only horizontal grid lines
-    ax.yaxis.grid(True)  # Horizontal grid
-    ax.xaxis.grid(False)  # No vertical grid
-
-    # Set background to transparent
-    fig.patch.set_alpha(0)  # Figure background
-    ax.set_facecolor('none')  # Axes background
-
-    # Display the plot in Streamlit
+    # Display the line plot
     st.pyplot(fig)
 
 # Column 2: Pie chart for retention rate
@@ -157,16 +157,20 @@ with col2:
         retention_rate = 0
 
     # Create a pie chart for retention rate with transparent background
+    # Pie chart for retention rate
     labels = ['Retained', 'Not Retained']
     sizes = [total_retained, total_first_timers - total_retained]
-    colors = ['#66b3ff', '#ff6666']
+    colors = [color_palette['Retained'], color_palette['Not Retained']]
 
-    # Set the figure size to make the pie chart smaller
-    fig, ax = plt.subplots(figsize=(5, 5), facecolor='none')  # Set facecolor to 'none' for transparency
+    fig, ax = plt.subplots(figsize=(5, 5), facecolor='none')
     wedges, texts, autotexts = ax.pie(sizes, labels=labels, colors=colors, autopct='%1.1f%%', startangle=90)
-    ax.axis('equal')
+    ax.axis('equal')  # Equal aspect ratio ensures the pie is drawn as a circle
 
-    # Add a legend to the pie chart
+    # Transparent background
+    fig.patch.set_alpha(0)
+    ax.set_facecolor('none')
+
+    # Add a legend
     ax.legend(wedges, labels, title="Status", loc="center left", bbox_to_anchor=(1, 0, 0.5, 1))
 
     st.text('First Timers Retention Rate')
@@ -217,17 +221,17 @@ if show_special_events_only and not filtered_attendance_df.empty:
 
     # Customize the plot
     #ax.set_title('Attendance for Special Events', color='white', fontsize=5)
-    ax.set_xlabel('Count', color='white', fontsize=5)
-    ax.set_ylabel('Special Event', color='white', fontsize=5)
+    ax.set_xlabel('Count', color='white', fontsize=6)
+    ax.set_ylabel('Special Event', color='white', fontsize=6)
 
     # Rotate y-axis labels
-    ax.set_yticklabels(ax.get_yticklabels(), rotation=45, ha='right', color='white', fontsize=4)
+    ax.set_yticklabels(ax.get_yticklabels(), rotation=45, ha='right', color='white', fontsize=6)
 
-    ax.tick_params(axis='y', colors='white', labelsize=5)
-    ax.tick_params(axis='x', colors='white', labelsize=5)
+    ax.tick_params(axis='y', colors='white', labelsize=6)
+    ax.tick_params(axis='x', colors='white', labelsize=6)
 
     # Customize the legend
-    ax.legend(fontsize=3)
+    ax.legend(fontsize=4)
 
     # Transparent background
     fig.patch.set_alpha(0)
@@ -240,8 +244,9 @@ elif show_special_events_only and filtered_attendance_df.empty:
 
 
 # -----------------------------------------------------------------------------
-# Feature to compare Quarter
-st.subheader('Compare Metrics For Different Quarter')
+# Feature to compare Quarters
+st.subheader('Compare Metrics For Different Quarters')
+
 # Function to filter data by quarter
 def filter_by_quarter(df, quarter):
     year = df['Date'].max().year  # Get the current year
@@ -255,72 +260,128 @@ def filter_by_quarter(df, quarter):
         start_date, end_date = f'{year}-10-01', f'{year}-12-31'
     return df[(df['Date'] >= start_date) & (df['Date'] <= end_date)]
 
-# Select two quarters to compare
+# Multi-select for quarters
 quarter_options = ['First quarter', 'Second quarter', 'Third quarter', 'Fourth quarter']
-quarter_1 = st.selectbox('Select first quarter to compare:', quarter_options, index=0)
-quarter_2 = st.selectbox('Select second quarter to compare:', quarter_options, index=1)
+selected_quarters = st.multiselect('Select quarters to compare:', quarter_options)
 
-# Filter data for both quarters
-filtered_data_q1 = filter_by_quarter(attendance_df, quarter_1)
-filtered_data_q2 = filter_by_quarter(attendance_df, quarter_2)
+# Add a button to trigger the comparison after selecting quarters
+if st.button('Compare Selected Quarters'):
+    if len(selected_quarters) < 2:
+        st.warning("Please select at least two quarters to compare.")
+    else:
+        # Filter data for each selected quarter
+        filtered_data_quarters = {quarter: filter_by_quarter(attendance_df, quarter) for quarter in selected_quarters}
 
-# Calculate key metrics for each quarter
-def calculate_metrics(df):
-    return {
-        #'Total Members': df['Members'].sum(),
-        #'Total Guests': df['Guests'].sum(),
-        'Total First Timers': df['First Timers'].sum(),
-        'Total 2nd/3rd Timers': df['2nd/3rd Timers'].sum()
-        #'Total Children': df['Children'].sum()
-    }
+        # Calculate key metrics for each quarter
+        def calculate_metrics(df):
+            return {
+                'Total First Timers': df['First Timers'].sum(),
+                'Total 2nd/3rd Timers': df['2nd/3rd Timers'].sum()
+            }
 
-metrics_q1 = calculate_metrics(filtered_data_q1)
-metrics_q2 = calculate_metrics(filtered_data_q2)
+        metrics = {quarter: calculate_metrics(filtered_data) for quarter, filtered_data in filtered_data_quarters.items()}
 
-# Display quarter comparison metrics
-st.text(f"Quarter Comparison: {quarter_1} vs {quarter_2}")
+        # Create columns to display metrics side by side for all selected quarters
+        cols = st.columns(len(selected_quarters))
 
-# Create columns to display metrics side by side
-col1, col2 = st.columns(2)
+        for i, quarter in enumerate(selected_quarters):
+            with cols[i]:
+                st.markdown(f"**{quarter} Metrics**")
+                for key, value in metrics[quarter].items():
+                    st.metric(label=key, value=value)
 
-with col1:
-    st.subheader(f"{quarter_1} Metrics")
-    for key, value in metrics_q1.items():
-        st.metric(label=key, value=value)
+        # Visualize the comparison using a bar chart
+        fig, ax = plt.subplots(figsize=(4, 2))
 
-with col2:
-    st.subheader(f"{quarter_2} Metrics")
-    for key, value in metrics_q2.items():
-        st.metric(label=key, value=value)
+        categories = ['First Timers', '2nd/3rd Timers']
+        for i, quarter in enumerate(selected_quarters):
+            values = [metrics[quarter][f'Total {category}'] for category in categories]
+            ax.bar([x + i * 0.2 for x in range(len(categories))], values, width=0.2, label=quarter)
 
-# Visualize the comparison using a bar chart
-fig, ax = plt.subplots(figsize=(3, 1.2))
+        # Add labels and formatting
+        ax.set_xlabel('Metrics', fontsize=8, color='white')
+        ax.set_ylabel('Count', fontsize=8, color='white')
+        ax.set_title('Attendance Metrics for Selected Quarters', fontsize=10, color='white')
 
-# Metrics for bar plot
-categories = ['First Timers', '2nd/3rd Timers'] #add later['Members', 'Guests', 'Children']
-values_q1 = [metrics_q1[f'Total {category}'] for category in categories]
-values_q2 = [metrics_q2[f'Total {category}'] for category in categories]
+        # X-axis categories
+        ax.set_xticks([x + 0.2 for x in range(len(categories))])
+        ax.set_xticklabels(categories, color='white')
 
-# Plot bar chart
-bar_width = 0.20
-index = range(len(categories))
+        # Y-axis tick color
+        ax.tick_params(axis='y', colors='white')
 
-ax.bar(index, values_q1, bar_width, label=quarter_1, color='#66b3ff')
-ax.bar([i + bar_width for i in index], values_q2, bar_width, label=quarter_2, color='#ff6666')
+        # Add legend
+        ax.legend(fontsize=5)
 
-# Add labels and formatting
-ax.set_xlabel('Metrics', color='white', fontsize=3)
-ax.set_ylabel('Count', color='white', fontsize=3)
-ax.set_title(f'Attendance Metrics Between {quarter_1} and {quarter_2}', color='white', fontsize=5)
-ax.set_xticks([i + bar_width / 2 for i in index])
-ax.set_xticklabels(categories)
-ax.tick_params(axis='y', colors='white', labelsize=4.5)
-ax.tick_params(axis='x', colors='white', labelsize=4.5)
-ax.legend(fontsize=4)
+        # Transparent background
+        fig.patch.set_alpha(0)
+        ax.set_facecolor('none')
 
-# Set background to transparent
-fig.patch.set_alpha(0)  # Figure background
-ax.set_facecolor('none')  # Axes background
+        st.pyplot(fig)
 
-# Display the bar chart in Streamlit
-st.pyplot(fig)
+
+# -----------------------------------------------------------------------------
+# Function to filter data based on special service inclusion/exclusion
+def filter_attendance_by_service(df, include_special_service):
+    if include_special_service:
+        return df[df['Special Sunday Service'] != 'No']
+    else:
+        return df[df['Special Sunday Service'] == 'No']
+
+
+# -----------------------------------------------------------------------------
+# Function to get highest and lowest attendance
+def get_attendance_extremes(df, highest=True):
+    if highest:
+        max_row = df[df['Total Check-in'] == df['Total Check-in'].max()].copy()
+        max_row['Date'] = max_row['Date'].dt.date  # Remove time from Date
+        return max_row
+    else:
+        min_row = df[df['Total Check-in'] == df['Total Check-in'].min()].copy()
+        min_row['Date'] = min_row['Date'].dt.date  # Remove time from Date
+        return min_row
+
+# -----------------------------------------------------------------------------
+# Section for highest/lowest attendance with/without special service
+st.subheader('Attendance Extremes')
+
+# User selects an option to view specific attendance extremes
+attendance_extreme_option = st.selectbox(
+    'Select an option to view attendance extremes:',
+    options=[
+        'Select an option',
+        'View peak attendance with special Sunday service',
+        'View peak attendance without special Sunday service',
+        'View low attendance with special Sunday service',
+        'View low attendance without special Sunday service'
+    ],
+    index=0
+)
+
+# Dictionary to map user options to conditions
+attendance_conditions = {
+    'View peak attendance with special Sunday service': {'highest': True, 'special_service': True},
+    'View peak attendance without special Sunday service': {'highest': True, 'special_service': False},
+    'View low attendance with special Sunday service': {'highest': False, 'special_service': True},
+    'View low attendance without special Sunday service': {'highest': False, 'special_service': False}
+}
+
+# Process the user's selection
+if attendance_extreme_option != 'Select an option':
+    # Get the corresponding condition based on user's selection
+    conditions = attendance_conditions[attendance_extreme_option]
+
+    # Filter attendance data based on whether to include special services
+    filtered_data = filter_attendance_by_service(attendance_df, conditions['special_service'])
+
+    # Get the highest or lowest attendance based on the user's selection
+    attendance_extreme = get_attendance_extremes(filtered_data, highest=conditions['highest'])
+
+    # Display the attendance data
+    if not attendance_extreme.empty:
+        st.write(f"{'Peak' if conditions['highest'] else 'Low'} attendance with{'out' if not conditions['special_service'] else ''} special Sunday service:")
+        st.dataframe(attendance_extreme)
+    else:
+        st.write('No attendance data found for the selected criteria.')
+else:
+    st.write('Please select an option to view attendance extremes.')

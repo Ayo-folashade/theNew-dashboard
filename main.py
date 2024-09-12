@@ -35,22 +35,21 @@ credentials_dict = {
     "client_x509_cert_url": st.secrets["gcp_service_account"]["client_x509_cert_url"]
 }
 
-# -----------------------------------------------------------------------------
+
+# ---------------------------------------------------------------------
 # Function to load the dataset
 @st.cache_data
-# -----------------------------------------------------------------------------
-# Function to load attendance data from Google Sheets
 def load_attendance_data_from_google_sheet():
     # Define the scope of access
     scope = ["https://spreadsheets.google.com/feeds", "https://www.googleapis.com/auth/drive"]
 
-    # Add your service account JSON file path
-    creds = ServiceAccountCredentials.from_json_keyfile_name(credentials_dict, scope)
+    # Authenticate with Google Sheets using credentials from secrets
+    creds = ServiceAccountCredentials.from_json_keyfile_dict(credentials_dict, scope)
 
     # Authorize and create a connection to the sheet
     client = gspread.authorize(creds)
 
-    # Open the Google Sheet by its name or URL
+    # Open the Google Sheet by its name
     sheet = client.open('Attendance').sheet1
 
     # Get all the data from the Google Sheet
@@ -64,14 +63,15 @@ def load_attendance_data_from_google_sheet():
 
     return df
 
-# -----------------------------------------------------------------------------
+
+# ---------------------------------------------------------------------
 # Use the Google Sheet data
 attendance_df = load_attendance_data_from_google_sheet()
 
-# -----------------------------------------------------------------------------
+# ---------------------------------------------------------------------
 # Draw the dashboard
-
 st.title('TheNew Island Dashboard')
+st.write(attendance_df)
 
 # -----------------------------------------------------------------------------
 # Function to filter data based on time range selection

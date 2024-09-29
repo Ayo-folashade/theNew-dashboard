@@ -1,5 +1,6 @@
 import streamlit as st
 import matplotlib.pyplot as plt
+import matplotlib.dates as mdates
 import pandas as pd
 import gspread
 from oauth2client.service_account import ServiceAccountCredentials
@@ -156,12 +157,18 @@ with col1:
             marker='.', color=color_palette['First Timers'], label='First Timers', linestyle='-', linewidth=1)
 
     # Customize the plot
-    ax.set_title('Attendance Trends Over Time', color='white')
-    ax.set_xlabel('Date', color='white')
-    ax.set_ylabel('Count', color='white')
+    ax.set_title('Attendance Trends Over Time', color='white', fontsize=8)
+    ax.set_xlabel('Date', color='white', fontsize=8)
+    ax.set_ylabel('Count', color='white', fontsize=8)
+
+    # Set major and minor ticks format for dates
+    ax.xaxis.set_major_locator(mdates.WeekdayLocator(interval=1))
+    ax.xaxis.set_minor_locator(mdates.DayLocator(interval=1))
+    ax.xaxis.set_major_formatter(mdates.DateFormatter('%Y-%m-%d'))
 
     # Rotate x-axis labels and set tick color
-    ax.tick_params(axis='x', rotation=45, colors='white')
+    plt.xticks(rotation=90, ha='right', fontsize=6)
+    ax.tick_params(axis='x', colors='white')
     ax.tick_params(axis='y', colors='white')
 
     # Grid lines and transparency

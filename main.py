@@ -162,8 +162,7 @@ with col1:
     ax.set_ylabel('Count', color='white', fontsize=8)
 
     # Set major and minor ticks format for dates
-    ax.xaxis.set_major_locator(mdates.WeekdayLocator(interval=1))
-    ax.xaxis.set_minor_locator(mdates.DayLocator(interval=1))
+    ax.xaxis.set_major_locator(mdates.WeekdayLocator(byweekday=mdates.SU))
     ax.xaxis.set_major_formatter(mdates.DateFormatter('%Y-%m-%d'))
 
     # Rotate x-axis labels and set tick color
